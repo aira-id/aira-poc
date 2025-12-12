@@ -65,16 +65,6 @@ def create_app() -> FastAPI:
     # Mount static files for web-ui (after routers to prevent conflicts)
     web_ui_path = Path(__file__).parent / "web-ui"
     if web_ui_path.exists():
-        # Mount voice assets if exists
-        voice_path = web_ui_path / "voice"
-        if voice_path.exists():
-            app.mount("/voice", StaticFiles(directory=str(voice_path), html=True), name="voice_static")
-
-        # Mount chat assets if exists
-        chat_path = web_ui_path / "chat"
-        if chat_path.exists():
-            app.mount("/chat", StaticFiles(directory=str(chat_path), html=True), name="chat_static")
-        
         # Mount index assets if exists
         voice_path = web_ui_path / "index"
         if voice_path.exists():
