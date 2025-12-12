@@ -1,0 +1,37 @@
+# FastAPI and server dependencies
+fastapi==0.115.5
+uvicorn[standard]==0.34.0
+python-multipart==0.0.20
+
+# WebSocket support
+websockets==14.1
+
+# Configuration and environment
+python-dotenv==1.0.1
+pydantic==2.10.3
+pydantic-settings==2.6.1
+pyyaml==6.0.2
+
+# CORS and middleware
+python-jose[cryptography]==3.3.0
+
+# Audio processing
+numpy==2.2.1
+soundfile==0.12.1
+scipy==1.15.1
+
+# ASR - Sherpa-ONNX dependencies
+onnxruntime-gpu==1.21.1
+
+# LLM - llama_mico dependencies
+thespian==3.10.7
+Pillow==11.0.0
+psutil==6.1.0
+
+# TTS - Kokoro-ONNX dependencies
+kokoro-onnx==0.4.9
+
+# Testing
+pytest==8.3.4
+pytest-asyncio==0.24.0
+httpx==0.28.1

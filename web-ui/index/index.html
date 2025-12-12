@@ -1,0 +1,882 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AI Voice Agent</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            color: #333;
+        }
+
+        .container {
+            width: 100%;
+            max-width: 800px;
+            padding: 20px;
+        }
+
+        /* Header */
+        header {
+            text-align: center;
+            padding: 40px 20px;
+            background: rgba(255, 255, 255, 0.95);
+            border-radius: 20px;
+            margin-bottom: 30px;
+            box-shadow: 0 10px 40px rgba(0, 0, 0, 0.1);
+            backdrop-filter: blur(10px);
+        }
+
+        .logo {
+            width: 80px;
+            height: 80px;
+            margin: 0 auto 20px;
+            background: linear-gradient(135deg, #667eea, #764ba2);
+            border-radius: 20px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 36px;
+            color: white;
+            animation: pulse 2s infinite;
+        }
+
+        @keyframes pulse {
+            0%, 100% { transform: scale(1); }
+            50% { transform: scale(1.05); }
+        }
+
+        h1 {
+            font-size: 32px;
+            font-weight: 700;
+            background: linear-gradient(135deg, #667eea, #764ba2);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+            margin-bottom: 10px;
+        }
+
+        .subtitle {
+            color: #666;
+            font-size: 16px;
+        }
+
+        /* Main Card */
+        .main-card {
+            background: rgba(255, 255, 255, 0.95);
+            border-radius: 20px;
+            padding: 40px;
+            box-shadow: 0 10px 40px rgba(0, 0, 0, 0.1);
+            backdrop-filter: blur(10px);
+        }
+
+        /* Status Indicators */
+        .status-container {
+            display: flex;
+            justify-content: center;
+            gap: 30px;
+            margin-bottom: 30px;
+        }
+
+        .status-item {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            padding: 8px 16px;
+            background: #f7f7f7;
+            border-radius: 20px;
+            font-size: 14px;
+            transition: all 0.3s ease;
+        }
+
+        .status-dot {
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            background: #ccc;
+            animation: none;
+        }
+
+        .status-dot.active {
+            background: #4ade80;
+            animation: blink 1s infinite;
+        }
+
+        .status-dot.connecting {
+            background: #fbbf24;
+            animation: blink 0.5s infinite;
+        }
+
+        @keyframes blink {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.3; }
+        }
+
+        /* Agent State Indicator */
+        .agent-state {
+            text-align: center;
+            margin-bottom: 20px;
+            padding: 16px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            border-radius: 12px;
+            color: white;
+            font-weight: 600;
+            font-size: 16px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 12px;
+            transition: all 0.3s ease;
+        }
+
+        .agent-state-icon {
+            width: 32px;
+            height: 32px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 20px;
+            animation: none;
+        }
+
+        .agent-state.listening {
+            background: linear-gradient(135deg, #4ade80, #22c55e);
+        }
+
+        .agent-state.listening .agent-state-icon {
+            animation: pulse-icon 2s infinite;
+        }
+
+        .agent-state.thinking {
+            background: linear-gradient(135deg, #fbbf24, #f59e0b);
+        }
+
+        .agent-state.thinking .agent-state-icon {
+            animation: spin 1s linear infinite;
+        }
+
+        .agent-state.speaking {
+            background: linear-gradient(135deg, #3b82f6, #2563eb);
+        }
+
+        .agent-state.speaking .agent-state-icon {
+            animation: wave 1s ease-in-out infinite;
+        }
+
+        @keyframes pulse-icon {
+            0%, 100% { transform: scale(1); opacity: 1; }
+            50% { transform: scale(1.1); opacity: 0.8; }
+        }
+
+        @keyframes spin {
+            from { transform: rotate(0deg); }
+            to { transform: rotate(360deg); }
+        }
+
+        @keyframes wave {
+            0%, 100% { transform: scaleY(1); }
+            25% { transform: scaleY(1.2); }
+            50% { transform: scaleY(0.8); }
+            75% { transform: scaleY(1.2); }
+        }
+
+        /* Connection Info */
+        .connection-info {
+            text-align: center;
+            margin-bottom: 20px;
+            padding: 12px;
+            background: #f0f9ff;
+            border-radius: 12px;
+            border: 1px solid #bae6fd;
+            font-size: 13px;
+            color: #0369a1;
+        }
+
+        /* Control Button */
+        .control-section {
+            text-align: center;
+        }
+
+        .start-button {
+            background: linear-gradient(135deg, #667eea, #764ba2);
+            color: white;
+            border: none;
+            padding: 18px 60px;
+            font-size: 18px;
+            font-weight: 600;
+            border-radius: 50px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            box-shadow: 0 4px 20px rgba(102, 126, 234, 0.4);
+            position: relative;
+            overflow: hidden;
+        }
+
+        .start-button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 30px rgba(102, 126, 234, 0.5);
+        }
+
+        .start-button:active {
+            transform: translateY(0);
+        }
+
+        .start-button.active {
+            background: linear-gradient(135deg, #ef4444, #dc2626);
+            animation: recording 1.5s infinite;
+        }
+
+        @keyframes recording {
+            0%, 100% { box-shadow: 0 4px 20px rgba(239, 68, 68, 0.4); }
+            50% { box-shadow: 0 4px 30px rgba(239, 68, 68, 0.6); }
+        }
+
+        .start-button::before {
+            content: '';
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            width: 0;
+            height: 0;
+            border-radius: 50%;
+            background: rgba(255, 255, 255, 0.3);
+            transform: translate(-50%, -50%);
+            transition: width 0.6s, height 0.6s;
+        }
+
+        .start-button:active::before {
+            width: 300px;
+            height: 300px;
+        }
+
+        /* Audio Player */
+        .audio-player {
+            margin-top: 30px;
+            padding: 20px;
+            background: #f9fafb;
+            border-radius: 16px;
+            display: none;
+        }
+
+        .audio-player.active {
+            display: block;
+        }
+
+        audio {
+            width: 100%;
+            border-radius: 8px;
+        }
+
+        /* Stats Panel */
+        .stats-panel {
+            margin-top: 20px;
+            padding: 15px;
+            background: #f9fafb;
+            border-radius: 12px;
+            display: none;
+        }
+
+        .stats-panel.active {
+            display: block;
+        }
+
+        .stat-item {
+            display: flex;
+            justify-content: space-between;
+            padding: 8px 0;
+            font-size: 14px;
+        }
+
+        .stat-label {
+            color: #6b7280;
+        }
+
+        .stat-value {
+            font-weight: 600;
+            color: #374151;
+        }
+
+        /* Toast Notification */
+        .toast {
+            position: fixed;
+            bottom: 30px;
+            left: 50%;
+            transform: translateX(-50%) translateY(100px);
+            background: white;
+            padding: 16px 24px;
+            border-radius: 12px;
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.15);
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            opacity: 0;
+            transition: all 0.3s ease;
+            z-index: 1000;
+        }
+
+        .toast.show {
+            transform: translateX(-50%) translateY(0);
+            opacity: 1;
+        }
+
+        .toast-icon {
+            width: 24px;
+            height: 24px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 14px;
+        }
+
+        .toast.success .toast-icon {
+            background: #4ade80;
+            color: white;
+        }
+
+        .toast.error .toast-icon {
+            background: #ef4444;
+            color: white;
+        }
+
+        .toast.info .toast-icon {
+            background: #3b82f6;
+            color: white;
+        }
+
+        /* Responsive */
+        @media (max-width: 640px) {
+            .container {
+                padding: 10px;
+            }
+
+            .main-card {
+                padding: 20px;
+            }
+
+            .status-container {
+                flex-direction: column;
+                gap: 10px;
+            }
+
+            .start-button {
+                padding: 16px 40px;
+                font-size: 16px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <header>
+            <div class="logo">🎙️</div>
+            <h1>AI Voice Agent</h1>
+            <p class="subtitle">Real-time voice interaction powered by AI</p>
+        </header>
+
+        <main class="main-card">
+            <!-- Connection Info -->
+            <div class="connection-info" id="connectionInfo">
+                <strong>WebSocket Endpoint:</strong> <span id="wsEndpoint">ws://localhost:8000/ws/speak</span>
+            </div>
+
+            <!-- Agent State Indicator -->
+            <div class="agent-state listening" id="agentState" style="display: none;">
+                <span class="agent-state-icon" id="agentStateIcon">🎤</span>
+                <span id="agentStateText">Listening...</span>
+            </div>
+
+            <!-- Status Indicators -->
+            <div class="status-container">
+                <div class="status-item">
+                    <span class="status-dot" id="micStatus"></span>
+                    <span>Microphone</span>
+                </div>
+                <div class="status-item">
+                    <span class="status-dot" id="wsStatus"></span>
+                    <span>WebSocket Connection</span>
+                </div>
+            </div>
+
+            <!-- Control Button -->
+            <div class="control-section">
+                <button class="start-button" id="startButton">
+                    <span id="buttonText">Start Conversation</span>
+                </button>
+            </div>
+
+            <!-- Stats Panel -->
+            <div class="stats-panel" id="statsPanel">
+                <div class="stat-item">
+                    <span class="stat-label">Audio Sent:</span>
+                    <span class="stat-value" id="audioSent">0 KB</span>
+                </div>
+                <div class="stat-item">
+                    <span class="stat-label">Audio Received:</span>
+                    <span class="stat-value" id="audioReceived">0 KB</span>
+                </div>
+                <div class="stat-item">
+                    <span class="stat-label">Connection Time:</span>
+                    <span class="stat-value" id="connectionTime">00:00</span>
+                </div>
+            </div>
+        </main>
+    </div>
+
+    <!-- Toast Notification -->
+    <div class="toast" id="toast">
+        <div class="toast-icon" id="toastIcon"></div>
+        <span id="toastMessage"></span>
+    </div>
+
+    <script>
+        class VoiceAgentUI {
+            constructor() {
+                this.isRunning = false;
+                this.socket = null;
+                this.audioChunks = [];
+                this.connectionStartTime = null;
+                this.statsInterval = null;
+                this.asrAudioContext = null;
+                this.ttsAudioContext = null;
+                this.recordNode = null;
+                this.playNode = null;
+
+                // Microphone control for preventing feedback loop
+                this.micSource = null;
+                this.isMicMuted = false;
+                this.isTTSPlaying = false;
+
+                // Track audio playback state
+                this.audioPlaybackQueue = 0; // Track how many audio chunks are being played
+                this.pendingStateChange = null; // Store pending state change
+
+                // WebSocket endpoint - replace with your actual endpoint
+                this.wsEndpoint = 'ws://localhost:8000/ws/speak';
+
+                // Statistics
+                this.audioSentBytes = 0;
+                this.audioReceivedBytes = 0;
+
+                this.initializeElements();
+                this.setupEventListeners();
+                this.updateEndpointDisplay();
+            }
+
+            initializeElements() {
+                this.startButton = document.getElementById('startButton');
+                this.buttonText = document.getElementById('buttonText');
+                this.micStatus = document.getElementById('micStatus');
+                this.wsStatus = document.getElementById('wsStatus');
+                this.agentState = document.getElementById('agentState');
+                this.agentStateIcon = document.getElementById('agentStateIcon');
+                this.agentStateText = document.getElementById('agentStateText');
+                this.connectionInfo = document.getElementById('connectionInfo');
+                this.statsPanel = document.getElementById('statsPanel');
+            }
+
+            setupEventListeners() {
+                this.startButton.addEventListener('click', () => this.toggleConversation());
+            }
+
+            updateEndpointDisplay() {
+                document.getElementById('wsEndpoint').textContent = this.wsEndpoint;
+            }
+
+            async toggleConversation() {
+                if (this.isRunning) {
+                    this.stopConversation();
+                } else {
+                    await this.startConversation();
+                }
+            }
+
+            async startConversation() {
+                try {
+                    this.showToast('Initializing connection...', 'info');
+                    
+                    // Update UI
+                    this.startButton.classList.add('active');
+                    this.buttonText.textContent = 'Stop Conversation';
+                    this.isRunning = true;
+                    this.connectionStartTime = Date.now();
+                    
+                    // Reset stats
+                    this.audioSentBytes = 0;
+                    this.audioReceivedBytes = 0;
+                    
+                    // Setup audio context
+                    this.asrAudioContext = new (window.AudioContext || window.webkitAudioContext)({ sampleRate: 16000 });
+                    await this.asrAudioContext.audioWorklet.addModule('./audio_process.js');
+                    this.ttsAudioContext = new (window.AudioContext || window.webkitAudioContext)({ sampleRate: 16000 });
+                    await this.ttsAudioContext.audioWorklet.addModule('./audio_process.js');
+
+                    // Setup audio worklet
+                    this.recordNode = new AudioWorkletNode(this.asrAudioContext, 'record-audio-processor');
+                    this.recordNode.connect(this.asrAudioContext.destination);
+                    this.playNode = new AudioWorkletNode(this.ttsAudioContext, 'play-audio-processor');
+                    this.playNode.connect(this.ttsAudioContext.destination);
+
+                    // Connect to WebSocket
+                    await this.connectWebSocket();
+                    
+                    // Initialize microphone
+                    await this.initializeMicrophone();
+                    
+                    // Start stats tracking
+                    this.startStatsTracking();
+                    
+                    this.showToast('Conversation started!', 'success');
+                } catch (error) {
+                    console.error('Error starting conversation:', error);
+                    this.showToast('Failed to start: ' + error.message, 'error');
+                    this.stopConversation();
+                }
+            }
+
+            stopConversation() {
+                // Update UI
+                this.startButton.classList.remove('active');
+                this.buttonText.textContent = 'Start Conversation';
+                this.isRunning = false;
+
+                // Close WebSocket
+                if (this.socket) {
+                    this.socket.close();
+                    this.socket = null;
+                }
+
+                // Stop stats tracking
+                if (this.statsInterval) {
+                    clearInterval(this.statsInterval);
+                    this.statsInterval = null;
+                }
+
+                // Hide stats panel
+                this.statsPanel.classList.remove('active');
+
+                // Hide agent state indicator
+                this.agentState.style.display = 'none';
+
+                // Reset microphone state
+                this.isMicMuted = false;
+                this.isTTSPlaying = false;
+
+                // Reset audio playback tracking
+                this.audioPlaybackQueue = 0;
+                this.pendingStateChange = null;
+
+                // Update status indicators
+                this.updateStatus('mic', false);
+                this.updateStatus('ws', false);
+
+                this.showToast('Conversation stopped', 'info');
+            }
+
+            async connectWebSocket() {
+                return new Promise((resolve, reject) => {
+                    this.updateStatus('ws', 'connecting');
+                    this.socket = new WebSocket(this.wsEndpoint);
+
+                    this.socket.onopen = async () => {
+                        this.updateStatus('ws', true);
+                        this.showToast('WebSocket connected', 'success');
+
+                        this.socket.send(JSON.stringify({
+                            "type": "start_session",
+                            "asr_model": "zipformer",
+                            "asr_lang": "id",
+                            "tts_speaker": "wibowo",
+                            "sample_rate": 16000,
+                            "speed": 1.0,
+                            "split": true,
+                            "llm_model": "gemma_1b_q8_0"
+                        }));
+                        resolve();
+                    };
+
+                    this.socket.onmessage = (event) => {
+                        this.handleReceivedMessage(event);
+                    };
+
+                    this.socket.onerror = (error) => {
+                        console.error('WebSocket error:', error);
+                        this.updateStatus('ws', false);
+                        this.showToast('WebSocket connection failed', 'error');
+                        reject(new Error('WebSocket connection failed'));
+                    };
+
+                    this.socket.onclose = () => {
+                        this.updateStatus('ws', false);
+                        if (this.isRunning) {
+                            this.showToast('Connection lost', 'error');
+                        }
+                    };
+
+                    // Connection timeout
+                    setTimeout(() => {
+                        if (this.socket.readyState !== WebSocket.OPEN) {
+                            reject(new Error('WebSocket connection timeout'));
+                        }
+                    }, 5000);
+                });
+            }
+
+            async initializeMicrophone() {
+                try {
+                    this.updateStatus('mic', 'connecting');
+
+                    const stream = await navigator.mediaDevices.getUserMedia({
+                        video: false,
+                        audio: true,
+                    });
+
+                    this.updateStatus('mic', true);
+
+                    // Connect audio context and worklet
+                    this.micSource = this.asrAudioContext.createMediaStreamSource(stream);
+                    this.micSource.connect(this.recordNode);
+
+                    // Send audio chunk
+                    this.recordNode.port.onmessage = (event) => {
+                        // Only send audio if mic is not muted (to prevent feedback loop)
+                        if (this.socket && this.socket.readyState === WebSocket.OPEN && !this.isMicMuted) {
+                            const int16Array = event.data.data;
+                            this.socket.send(int16Array.buffer);
+                        }
+                    };
+
+                    // Start visualization
+                    //this.visualize();
+
+                } catch (error) {
+                    console.error(error)
+                    this.updateStatus('mic', false);
+                    throw new Error('Microphone access denied');
+                }
+            }
+
+            muteMicrophone() {
+                if (!this.isMicMuted) {
+                    this.isMicMuted = true;
+                    console.log('Microphone muted to prevent feedback loop');
+                }
+            }
+
+            unmuteMicrophone() {
+                if (this.isMicMuted) {
+                    this.isMicMuted = false;
+                    console.log('Microphone unmuted');
+                }
+            }
+
+            handleReceivedMessage(event) {
+                // Try to determine if it's audio data or a control message
+                if (event.data instanceof Blob) {
+                    this.handleReceivedAudio(event.data);
+                } else {
+                    // Handle text/control messages if needed
+                    try {
+                        const data = JSON.parse(event.data);
+                        console.log('Received message:', data);
+
+                        // Handle state change messages
+                        if (data.type === 'state_change' && data.state) {
+                            this.updateAgentState(data.state);
+                        }
+
+                        // Check if TTS has finished
+                        if (data.finished === true) {
+                            // TTS finished, unmute mic after a small delay
+                            setTimeout(() => {
+                                this.isTTSPlaying = false;
+                                this.unmuteMicrophone();
+                            }, 500); // 500ms delay to ensure all audio has been played
+                        }
+                    } catch (e) {
+                        console.log('Received non-JSON message:', event.data);
+                    }
+                }
+            }
+
+            updateAgentState(state) {
+                // If transitioning to listening but audio is still playing, queue the state change
+                if (state === 'listening' && this.audioPlaybackQueue > 0) {
+                    console.log(`Queueing state change to listening (${this.audioPlaybackQueue} audio chunks still playing)`);
+                    this.pendingStateChange = state;
+                    return;
+                }
+
+                // Clear any pending state change
+                this.pendingStateChange = null;
+
+                // Remove all state classes
+                this.agentState.classList.remove('listening', 'thinking', 'speaking');
+
+                // Add the new state class
+                this.agentState.classList.add(state);
+
+                // Show the agent state indicator
+                this.agentState.style.display = 'flex';
+
+                // Update icon and text based on state
+                const stateConfig = {
+                    'listening': {
+                        icon: '🎤',
+                        text: 'Listening...'
+                    },
+                    'thinking': {
+                        icon: '🤔',
+                        text: 'Thinking...'
+                    },
+                    'speaking': {
+                        icon: '💬',
+                        text: 'Speaking...'
+                    }
+                };
+
+                const config = stateConfig[state];
+                if (config) {
+                    this.agentStateIcon.textContent = config.icon;
+                    this.agentStateText.textContent = config.text;
+                }
+
+                console.log(`Agent state updated: ${state}`);
+            }
+
+            handleReceivedAudio(blob) {
+                // Mute microphone when TTS audio starts playing
+                if (!this.isTTSPlaying) {
+                    this.isTTSPlaying = true;
+                    this.muteMicrophone();
+                }
+
+                // Increment audio playback queue
+                this.audioPlaybackQueue++;
+                console.log(`Audio chunk received, queue size: ${this.audioPlaybackQueue}`);
+
+                // Handle received audio data
+                blob.arrayBuffer().then((arrayBuffer) => {
+                    const int16Array = new Int16Array(arrayBuffer);
+                    const float32Array = new Float32Array(int16Array.length);
+
+                    // Calculate approximate duration of this audio chunk (in ms)
+                    const sampleRate = 16000; // TTS output sample rate
+                    const durationMs = (float32Array.length / sampleRate) * 1000;
+
+                    for (let i = 0; i < int16Array.length; i++) {
+                        float32Array[i] = int16Array[i] / 32768.;
+                    }
+
+                    this.playNode.port.postMessage({ message: 'audioData', audioData: float32Array });
+
+                    // Schedule decrement of queue after audio finishes playing
+                    setTimeout(() => {
+                        this.audioPlaybackQueue--;
+                        console.log(`Audio chunk finished, queue size: ${this.audioPlaybackQueue}`);
+
+                        // If queue is empty and there's a pending state change, apply it now
+                        if (this.audioPlaybackQueue === 0 && this.pendingStateChange) {
+                            console.log('All audio finished, applying pending state change');
+                            const pendingState = this.pendingStateChange;
+                            this.pendingStateChange = null;
+                            this.updateAgentState(pendingState);
+                        }
+                    }, durationMs + 100); // Add 100ms buffer for safety
+                });
+
+                this.audioReceivedBytes += blob.size;
+
+                // Create object URL from received blob
+                const url = URL.createObjectURL(blob);
+            }
+
+            startStatsTracking() {
+                this.statsPanel.classList.add('active');
+                
+                this.statsInterval = setInterval(() => {
+                    // Update audio stats
+                    document.getElementById('audioSent').textContent = this.formatBytes(this.audioSentBytes);
+                    document.getElementById('audioReceived').textContent = this.formatBytes(this.audioReceivedBytes);
+                    
+                    // Update connection time
+                    if (this.connectionStartTime) {
+                        const elapsed = Date.now() - this.connectionStartTime;
+                        const minutes = Math.floor(elapsed / 60000);
+                        const seconds = Math.floor((elapsed % 60000) / 1000);
+                        document.getElementById('connectionTime').textContent = 
+                            `${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`;
+                    }
+                }, 1000);
+            }
+
+            formatBytes(bytes) {
+                if (bytes === 0) return '0 B';
+                const k = 1024;
+                const sizes = ['B', 'KB', 'MB', 'GB'];
+                const i = Math.floor(Math.log(bytes) / Math.log(k));
+                return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
+            }
+
+            updateStatus(type, status) {
+                const statusMap = {
+                    'mic': this.micStatus,
+                    'ws': this.wsStatus
+                };
+                
+                const element = statusMap[type];
+                if (!element) return;
+                
+                element.classList.remove('active', 'connecting');
+                
+                if (status === true) {
+                    element.classList.add('active');
+                } else if (status === 'connecting') {
+                    element.classList.add('connecting');
+                }
+            }
+
+            showToast(message, type = 'info') {
+                const toast = document.getElementById('toast');
+                const toastMessage = document.getElementById('toastMessage');
+                const toastIcon = document.getElementById('toastIcon');
+                
+                toast.className = `toast ${type}`;
+                toastMessage.textContent = message;
+                
+                // Set icon based on type
+                const icons = {
+                    success: '✓',
+                    error: '✕',
+                    info: 'i'
+                };
+                toastIcon.textContent = icons[type] || 'i';
+                
+                // Show toast
+                setTimeout(() => toast.classList.add('show'), 100);
+                
+                // Hide after 3 seconds
+                setTimeout(() => {
+                    toast.classList.remove('show');
+                }, 3000);
+            }
+        }
+
+        // Initialize the application
+        document.addEventListener('DOMContentLoaded', () => {
+            new VoiceAgentUI();
+        });
+    </script>
+</body>
+</html>
