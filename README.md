@@ -1,6 +1,6 @@
-# AIRA Voice Bot Server
+# AI Voice Agent Implementation
 
-FastAPI-based server for AI voice agent with integrated ASR (Automatic Speech Recognition), LLM (Large Language Model), and TTS (Text-to-Speech) pipeline.
+A proof-of-concept (PoC) demonstrating how to build and run an AI-powered voice agent entirely locally using open-source projects and models. This implementation showcases a complete conversational AI pipeline that processes voice input through Automatic Speech Recognition (ASR), generates intelligent responses using Large Language Models (LLM), and synthesizes natural speech output via Text-to-Speech (TTS) — all running on your own infrastructure without relying on cloud services.
 
 ## Features
 
