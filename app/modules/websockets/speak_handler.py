@@ -28,6 +28,7 @@ import json
 import httpx
 from enum import Enum
 from fastapi import WebSocket, WebSocketDisconnect
+from app.config import settings
 from app.logging_config import logger
 from app.modules.websockets.manager import ws_manager
 from aira.asr.sherpa_onnx.asr import start_asr_stream
@@ -75,8 +76,8 @@ class SpeakWebSocketHandler:
         self.chat_histories = {}
         # Store agent state per client
         self.agent_states = {}
-        # LLM API endpoint
-        self.llm_endpoint = "http://localhost:8080/v1/chat/completions"
+        # LLM API endpoint from config
+        self.llm_endpoint = settings.llm_endpoint
 
     async def handle_connection(self, websocket: WebSocket, client_id: str):
         """
@@ -101,7 +102,7 @@ class SpeakWebSocketHandler:
         # Use dictionaries to make streams mutable for nested functions
         asr_stream_container = {"stream": None}
         tts_stream_container = {"stream": None}
-        llm_config = {"model_name": "gemma_1b_q8_0"}  # Default LLM model
+        llm_config = {"model_name": settings.llm_model}  # Default LLM model from config
 
         async def task_receive_audio():
             """Continuously receive and process audio from the client."""
@@ -424,10 +425,10 @@ class SpeakWebSocketHandler:
             The LLM response text, or empty string if error occurs
         """
         try:
-            # Prepare system prompt
+            # Prepare system prompt from config
             system_prompt = {
                 "role": "system",
-                "content": "Anda adalah asisten suara AI yang membantu. Berikan respons yang ringkas, alami, dan komunikatif yang sesuai untuk audio lisan. Pastikan jawaban Anda singkat dan langsung ke intinya, karena akan diubah menjadi ucapan."
+                "content": settings.llm_system_prompt
             }
 
             # Trim chat history to fit within token limit (keeping most recent)
@@ -436,16 +437,16 @@ class SpeakWebSocketHandler:
             # Prepare messages with system prompt at the beginning
             messages = [system_prompt] + trimmed_history
 
-            # Prepare chat completion request
+            # Prepare chat completion request with config values
             payload = {
                 "model": model_name,
                 "messages": messages,
-                "temperature": 0.7,
-                "max_tokens": 1000,
+                "temperature": settings.llm_temperature,
+                "max_tokens": settings.llm_max_tokens,
                 "stream": False
             }
 
-            print(payload)
+            logger.debug(f"LLM request payload: {payload}")
 
             # Send request to LLM endpoint
             async with httpx.AsyncClient(timeout=30.0) as client:
@@ -508,39 +509,41 @@ class SpeakWebSocketHandler:
         """
         logger.info(f"Starting voice agent session for {client_id}")
 
-        # Update LLM model name from session data
-        if "llm_model" in data:
-            llm_config["model_name"] = data["llm_model"]
-            logger.info(f"Using LLM model: {llm_config['model_name']}")
+        # Update LLM model name from session data or use config default
+        llm_config["model_name"] = data.get("llm_model", settings.llm_model)
+        logger.info(f"Using LLM model: {llm_config['model_name']}")
 
-        # Initialize ASR stream
+        # Initialize ASR stream with config defaults, allow session override
         asr_config = {
-            "threads": 2,
-            "models_root": "/home/fitra/Workspaces/aira-server/models",
+            "threads": settings.tts_threads,
+            "models_root": settings.models_root,
             "asr_provider": "cpu",
-            "asr_model": data.get("asr_model"),
-            "asr_lang": data.get("asr_lang")
+            "asr_model": data.get("asr_model", settings.asr_model),
+            "asr_lang": data.get("asr_lang", settings.asr_lang)
         }
 
-        asr_stream_container["stream"] = await start_asr_stream(16000, asr_config)
+        asr_sample_rate = data.get("sample_rate", settings.asr_sample_rate)
+        asr_stream_container["stream"] = await start_asr_stream(asr_sample_rate, asr_config)
         if not asr_stream_container["stream"]:
             logger.error(f"Failed to start ASR stream for {client_id}")
             await ws_manager.disconnect(client_id)
             return
 
-        # Initialize TTS stream
+        # Initialize TTS stream with config defaults, allow session override
         tts_config = {
-            "threads": 2,
-            "models_root": "/home/fitra/Workspaces/aira-server/models",
-            "tts_provider": "cpu",
-            "tts_model": data.get("tts_model"),
-            "tts_speaker": data.get("tts_speaker"),
-            "split": True  # Always use sentence splitting for voice agent
+            "threads": settings.tts_threads,
+            "models_root": settings.models_root,
+            "tts_provider": settings.tts_provider,
+            "tts_model": data.get("tts_model", settings.tts_model),
+            "tts_speaker": data.get("tts_speaker", settings.tts_speaker),
+            "split": data.get("split", settings.tts_split)
         }
 
+        tts_sample_rate = data.get("sample_rate", settings.tts_sample_rate)
+        tts_speed = data.get("speed", settings.tts_speed)
         tts_stream_container["stream"] = await start_tts_stream(
-            data.get("sample_rate", 16000),
-            data.get("speed", 1.0),
+            tts_sample_rate,
+            tts_speed,
             tts_config
         )
         if not tts_stream_container["stream"]:
@@ -558,7 +561,7 @@ class SpeakWebSocketHandler:
                 "client_id": client_id,
                 "mode": "voice_agent",
                 "pipeline": "audio -> ASR -> LLM -> TTS -> audio",
-                "llm_model": data.get("llm_model", "gemma_270m_q8_0")
+                "llm_model": llm_config["model_name"]
             })
         )
 

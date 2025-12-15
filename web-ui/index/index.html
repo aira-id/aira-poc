@@ -593,15 +593,9 @@
                         this.updateStatus('ws', true);
                         this.showToast('WebSocket connected', 'success');
 
+                        // Send start_session without config - server will use defaults from .env
                         this.socket.send(JSON.stringify({
-                            "type": "start_session",
-                            "asr_model": "zipformer",
-                            "asr_lang": "id",
-                            "tts_speaker": "wibowo",
-                            "sample_rate": 16000,
-                            "speed": 1.0,
-                            "split": true,
-                            "llm_model": "gemma_1b_q8_0"
+                            "type": "start_session"
                         }));
                         resolve();
                     };

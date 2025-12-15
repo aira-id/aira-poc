@@ -50,5 +50,31 @@ class Settings(BaseSettings):
     log_level: str = "INFO"
     log_file: Optional[str] = "logs/aira-server.log"
 
+    # ASR (Automatic Speech Recognition) settings
+    asr_model: str = "zipformer"
+    asr_lang: str = "id"
+    asr_sample_rate: int = 16000
+    asr_encoder_filename: str = "encoder-epoch-99-avg-1.onnx"
+    asr_decoder_filename: str = "decoder-epoch-99-avg-1.onnx"
+    asr_joiner_filename: str = "joiner-epoch-99-avg-1.onnx"
+    asr_tokens_filename: str = "tokens.txt"
+
+    # LLM (Large Language Model) settings
+    llm_endpoint: str = "http://localhost:8080/v1/chat/completions"
+    llm_model: str = "gemma_1b_q8_0"
+    llm_system_prompt: str = "You are a helpful assistant."
+    llm_max_tokens: int = 150
+    llm_temperature: float = 0.7
+
+    # TTS (Text-to-Speech) settings
+    tts_model: str = "zipformer"
+    tts_speaker: str = "wibowo"
+    tts_sample_rate: int = 16000
+    tts_speed: float = 1.0
+    tts_split: bool = True
+    tts_provider: str = "cpu"
+    tts_threads: int = 2
+    models_root: str = "/home/fitra/Workspaces/aira-server/models"
+
 
 settings = Settings()

@@ -18,6 +18,7 @@ import time
 import sherpa_onnx
 
 from aira.asr.sherpa_onnx.stream import ASRStream
+from app.config import settings
 
 logger = logging.getLogger(__name__)
 
@@ -47,10 +48,10 @@ def create_zipformer(samplerate: int, args) -> sherpa_onnx.OnlineRecognizer:
     if not os.path.exists(d):
         raise ValueError(f"ASR: model not found {d}")
 
-    encoder = os.path.join(d, "encoder-iter-100000-avg-15-chunk-32-left-256.onnx")
-    decoder = os.path.join(d, "decoder-iter-100000-avg-15-chunk-32-left-256.onnx")
-    joiner = os.path.join(d, "joiner-iter-100000-avg-15-chunk-32-left-256.onnx")
-    tokens = os.path.join(d, "tokens.txt")
+    encoder = os.path.join(d, settings.asr_encoder_filename)
+    decoder = os.path.join(d, settings.asr_decoder_filename)
+    joiner = os.path.join(d, settings.asr_joiner_filename)
+    tokens = os.path.join(d, settings.asr_tokens_filename)
     recognizer = sherpa_onnx.OnlineRecognizer.from_transducer(
         tokens=tokens,
         encoder=encoder,
