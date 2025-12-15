@@ -1,17 +1,11 @@
 # AIRA Voice Bot Server
 
-FastAPI-based server for voice bot interactions with support for ASR (Automatic Speech Recognition), LLM (Large Language Model), and TTS (Text-to-Speech) modules.
+FastAPI-based server for AI voice agent with integrated ASR (Automatic Speech Recognition), LLM (Large Language Model), and TTS (Text-to-Speech) pipeline.
 
 ## Features
 
-- **FastAPI Framework**: High-performance async web framework
 - **WebSocket Support**: Real-time bidirectional audio streaming
-- **Modular Architecture**: Separate modules for ASR, LLM, and TTS
-- **CORS Enabled**: Cross-origin resource sharing configured
-- **Logging**: Comprehensive logging to console and file
-- **Error Handling**: Global error handling middleware
-- **Health Checks**: Health and readiness endpoints
-- **Environment Configuration**: .env file support
+- **Voice Agent Pipeline**: Integrated ASR → LLM → TTS for conversational AI
 
 ## Project Structure
 
@@ -25,14 +19,12 @@ aira-server/
 │   │   └── routes/
 │   │       ├── health.py       # Health check endpoints
 │   │       ├── index.py        # Index/root route
-│   │       └── websocket.py    # WebSocket endpoints (/ws/asr, /ws/tts, /ws/speak)
+│   │       └── websocket.py    # WebSocket endpoint (/ws/speak)
 │   ├── core/
 │   │   ├── exceptions.py       # Custom exceptions
 │   │   └── middleware.py       # Custom middleware
 │   └── modules/
 │       └── websockets/         # WebSocket handlers
-│           ├── asr_handler.py
-│           ├── tts_handler.py
 │           └── speak_handler.py  # Voice agent with LLM integration
 ├── aira/
 │   ├── asr/                    # ASR (Automatic Speech Recognition) module
@@ -50,14 +42,14 @@ aira-server/
 └── README.md                   # This file
 ```
 
-**Note:** The internal LLM module has been removed. AIRA now uses external LLM services via OpenAI-compatible APIs (see [LLM Setup](#llm-setup) section).
-
 ## Setup
 
 ### Prerequisites
 
 - Python 3.12+
 - pip (Python package manager)
+- Git (for cloning models)
+- Git LFS (for downloading large model files from HuggingFace)
 
 ### Installation
 
@@ -84,15 +76,35 @@ aira-server/
    pip install -r requirements.txt
    ```
 
-5. Create environment file:
+5. Download models:
+   ```bash
+   # Create models directory
+   mkdir -p models
+
+   # Download Indonesian ASR model (Sherpa-ONNX Zipformer)
+   git clone https://huggingface.co/spacewave/sherpa-onnx-streaming-zipformer2-id models/sherpa-onnx-streaming-zipformer2-id
+
+   # Download Indonesian TTS model (VITS)
+   git clone https://huggingface.co/jerichosiahaya/vits-tts-id models/vits-tts-id
+
+   # Move speaker configuration to main directory
+   mv models/vits-tts-id/speaker.pth ./speaker.pth
+   ```
+
+6. Create environment file:
    ```bash
    cp .env.example .env
    ```
 
-6. Edit `.env` file with your configuration:
+7. Edit `.env` file with your configuration:
    ```bash
    nano .env  # or use your preferred editor
    ```
+
+   **Important:** Update the following settings:
+   - `LLM_ENDPOINT`: Point to your LLM service
+   - `MODELS_ROOT`: Verify the path matches your setup (default: `/home/fitra/Workspaces/aira-server/models`)
+   - Other ASR/TTS settings as needed
 
 ## Configuration
 
@@ -101,8 +113,9 @@ Configure the following in your `.env` file:
 - **Application Settings**: `APP_NAME`, `DEBUG`, `HOST`, `PORT`
 - **CORS Settings**: `CORS_ORIGINS`
 - **Logging**: `LOG_LEVEL`, `LOG_FILE`
-
-**Note:** ASR and TTS configuration is passed via WebSocket session messages, not environment variables. LLM configuration is set in the code (see [LLM Setup](#llm-setup)).
+- **ASR Settings**: `ASR_MODEL`, `ASR_LANG`, `ASR_SAMPLE_RATE`
+- **LLM Settings**: `LLM_ENDPOINT`, `LLM_MODEL`, `LLM_SYSTEM_PROMPT`, `LLM_MAX_TOKENS`, `LLM_TEMPERATURE`
+- **TTS Settings**: `TTS_MODEL`, `TTS_SPEAKER`, `TTS_SAMPLE_RATE`, `TTS_SPEED`, `TTS_SPLIT`, `TTS_PROVIDER`, `TTS_THREADS`, `MODELS_ROOT`
 
 ## Running the Server
 
@@ -133,10 +146,6 @@ Once the server is running:
   - Visual state indicators (listening/thinking/speaking)
   - Connection status and statistics display
 
-- **API Documentation**:
-  - **Swagger UI**: http://localhost:8000/docs
-  - **ReDoc**: http://localhost:8000/redoc
-
 ## API Endpoints
 
 ### Web Interface
@@ -148,15 +157,21 @@ Once the server is running:
 - `GET /health` - Basic health check
 - `GET /health/ready` - Readiness check with service status
 
-### WebSocket Endpoints
+### WebSocket Endpoint
 
-- `WS /ws/asr` - ASR (Speech-to-Text) endpoint
-- `WS /ws/tts` - TTS (Text-to-Speech) endpoint
 - `WS /ws/speak` - Voice Agent endpoint (ASR → LLM → TTS pipeline)
 
 #### WebSocket Message Format for `/ws/speak`
 
 **Client → Server (Start Session):**
+```json
+{
+  "type": "start_session"
+}
+```
+
+All configuration is read from the server's `.env` file. You can optionally override settings by including them in the start_session message:
+
 ```json
 {
   "type": "start_session",
@@ -192,89 +207,6 @@ Once the server is running:
 **Server → Client (Audio Stream):**
 - Receive audio bytes (TTS output, PCM16, 16kHz)
 
-## Testing
-
-The project includes a comprehensive test suite covering configuration, middleware, exceptions, health endpoints, WebSocket routes, and the main application.
-
-### Running Tests
-
-**Run all tests:**
-```bash
-# Activate virtual environment first
-source venv/bin/activate
-
-# Run all tests
-pytest
-
-# Run with verbose output
-pytest -v
-
-# Run specific test file
-pytest tests/test_config.py -v
-
-# Run specific test function
-pytest tests/test_health.py::test_health_check_status -v
-```
-
-**Run tests with coverage:**
-```bash
-# Install pytest-cov if not already installed
-pip install pytest-cov
-
-# Run with coverage report
-pytest --cov=app --cov-report=html --cov-report=term-missing
-
-# View HTML coverage report
-open htmlcov/index.html  # On macOS
-xdg-open htmlcov/index.html  # On Linux
-```
-
-**Run tests by category:**
-```bash
-# Run only unit tests (when marked)
-pytest -m unit
-
-# Run only integration tests (when marked)
-pytest -m integration
-
-# Skip slow tests
-pytest -m "not slow"
-```
-
-### Test Structure
-
-```
-tests/
-├── conftest.py              # Shared fixtures and configuration
-├── test_config.py           # Configuration and settings tests
-├── test_exceptions.py       # Custom exception tests
-├── test_middleware.py       # Middleware tests
-├── test_health.py           # Health endpoint tests
-├── test_main.py             # Main application tests
-└── test_websocket.py        # WebSocket endpoint tests
-```
-
-### Test Coverage
-
-- **67 tests** covering:
-  - Configuration loading and validation (6 tests)
-  - Custom exceptions and error handling (7 tests)
-  - Middleware functionality (9 tests)
-  - Health check endpoints (11 tests)
-  - Main application setup (17 tests)
-  - WebSocket endpoints (17 tests)
-
-### Writing New Tests
-
-Add new test files to the `tests/` directory following the naming convention `test_*.py`. Use the fixtures from `conftest.py`:
-
-```python
-def test_example(client):
-    """Test using the test client fixture."""
-    response = client.get("/your-endpoint")
-    assert response.status_code == 200
-```
-
 ## LLM Setup
 
 AIRA uses external LLM services via **OpenAI-compatible APIs**. The system communicates with any LLM provider that implements the OpenAI Chat Completions API format.
@@ -304,61 +236,17 @@ AIRA works with any OpenAI API-compatible service, including:
 
 ### Configuration
 
-The LLM endpoint is configured in [app/modules/websockets/speak_handler.py](app/modules/websockets/speak_handler.py):
-
-```python
-# Line ~79
-self.llm_endpoint = "http://localhost:8080/v1/chat/completions"
-```
-
-Update this URL to point to your LLM service endpoint.
-
-### API Format
-
-The system sends requests in OpenAI Chat Completions format:
-
-```json
-{
-  "model": "model-name",
-  "messages": [
-    {"role": "system", "content": "You are a helpful assistant."},
-    {"role": "user", "content": "Hello!"},
-    {"role": "assistant", "content": "Hi there!"}
-  ],
-  "temperature": 0.7,
-  "max_tokens": 150
-}
-```
-
-Expected response format:
-
-```json
-{
-  "choices": [
-    {
-      "message": {
-        "role": "assistant",
-        "content": "Response text here"
-      }
-    }
-  ]
-}
-```
-
-### Testing Your LLM Service
-
-Test your LLM endpoint with curl:
+The LLM endpoint and other LLM settings are configured in your `.env` file:
 
 ```bash
-curl http://localhost:8080/v1/chat/completions \
-  -H "Content-Type: application/json" \
-  -d '{
-    "model": "your-model-name",
-    "messages": [
-      {"role": "user", "content": "Hello!"}
-    ]
-  }'
+LLM_ENDPOINT=http://localhost:8080/v1/chat/completions
+LLM_MODEL=gemma_1b_q8_0
+LLM_SYSTEM_PROMPT=You are a helpful assistant.
+LLM_MAX_TOKENS=150
+LLM_TEMPERATURE=0.7
 ```
+
+Update these values to match your LLM service configuration.
 
 ## Voice Agent Features
 
@@ -373,11 +261,96 @@ The voice agent (`/ws/speak`) includes:
 - **Chat History**: Maintains conversation context for LLM
 - **Token-based Trimming**: Automatically trims old messages when context limit reached
 
-## Implementing ASR/TTS Modules
+## Model Setup
+
+The voice agent requires ASR and TTS models to function. Models are not included in the repository and must be downloaded separately.
+
+### TTS Model Setup
+
+Download the Indonesian TTS model from HuggingFace:
+
+1. **Download the TTS model:**
+   ```bash
+   # Create models directory if it doesn't exist
+   mkdir -p models
+
+   # Clone the model repository
+   git clone https://huggingface.co/jerichosiahaya/vits-tts-id models/vits-tts-id
+   ```
+
+2. **Move speaker configuration:**
+   ```bash
+   # Move speaker.pth to the main project directory
+   mv models/vits-tts-id/speaker.pth ./speaker.pth
+   ```
+
+3. **Verify model structure:**
+   ```
+   aira-server/
+   ├── models/
+   │   └── vits-tts-id/
+   │       ├── config.json
+   │       ├── model.pth
+   │       └── (other model files)
+   ├── speaker.pth          # Speaker configuration
+   └── ...
+   ```
+
+**Model Information:**
+- **Source**: [jerichosiahaya/vits-tts-id](https://huggingface.co/jerichosiahaya/vits-tts-id)
+- **Type**: VITS (Variational Inference with adversarial learning for end-to-end Text-to-Speech)
+- **Language**: Indonesian (ID)
+- **Speakers**: Multiple Indonesian voices
+
+### ASR Model Setup
+
+Download the Indonesian ASR model from HuggingFace:
+
+1. **Download the ASR model:**
+   ```bash
+   # Create models directory if it doesn't exist
+   mkdir -p models
+
+   # Clone the model repository
+   git clone https://huggingface.co/spacewave/sherpa-onnx-streaming-zipformer2-id models/sherpa-onnx-streaming-zipformer2-id
+   ```
+
+2. **Verify model structure:**
+   ```
+   aira-server/
+   ├── models/
+   │   ├── sherpa-onnx-streaming-zipformer2-id/
+   │   │   ├── encoder-epoch-99-avg-1.onnx
+   │   │   ├── decoder-epoch-99-avg-1.onnx
+   │   │   ├── joiner-epoch-99-avg-1.onnx
+   │   │   ├── tokens.txt
+   │   │   └── (other model files)
+   │   └── vits-tts-id/
+   │       └── ...
+   └── ...
+   ```
+
+3. **Configure in `.env` file:**
+   ```bash
+   ASR_MODEL=zipformer
+   ASR_LANG=id
+   MODELS_ROOT=/home/fitra/Workspaces/aira-server/models
+   ```
+
+**Model Information:**
+- **Source**: [spacewave/sherpa-onnx-streaming-zipformer2-id](https://huggingface.co/spacewave/sherpa-onnx-streaming-zipformer2-id)
+- **Type**: Sherpa-ONNX Streaming Zipformer2
+- **Framework**: ONNX Runtime (optimized for CPU/GPU inference)
+- **Language**: Indonesian (ID)
+- **Features**: Real-time streaming ASR with low latency
+
+## Voice Pipeline Modules
+
+The voice agent pipeline consists of three main components:
 
 ### ASR Module
 
-The ASR module is located in `aira/asr/`. Implement your ASR provider there.
+The ASR module is located in `aira/asr/`. This handles speech-to-text conversion.
 
 ```python
 # Example structure
@@ -392,7 +365,7 @@ async def transcribe(self, audio_data: bytes) -> str:
 
 ### TTS Module
 
-The TTS module is located in `aira/tts/`. Implement your TTS provider there.
+The TTS module is located in `aira/tts/`. This handles text-to-speech synthesis.
 
 ```python
 # Example structure
@@ -404,6 +377,10 @@ async def synthesize(self, text: str, **kwargs) -> bytes:
     # Implement audio synthesis logic
     pass
 ```
+
+### Integration
+
+All three components (ASR, LLM, TTS) are integrated in the voice agent handler at `app/modules/websockets/speak_handler.py`, which orchestrates the complete conversational pipeline.
 
 ## Development
 
@@ -424,8 +401,8 @@ Log levels: `DEBUG`, `INFO`, `WARNING`, `ERROR`, `CRITICAL`
 
 ## License
 
-[Add your license here]
+This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
 
 ## Contributing
 
-[Add contribution guidelines here]
+We welcome contributions to this project.
